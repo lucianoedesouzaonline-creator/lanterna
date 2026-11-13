@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Lanterna PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.3s;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .botoes-box {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-luz {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .btn-luz:active {
+            transform: scale(0.95);
+        }
+
+        #on-btn {
+            background-color: #28a745;
+            /* Verde para ligar */
+        }
+
+        #off-btn {
+            background-color: #dc3545;
+            /* Vermelho para desligar */
+        }
+
+        p {
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Super Lanterna PWA</h2>
+
+        <!-- Botões separados de Ligar e Desligar -->
+        <div class="botoes-box">
+            <button id="on-btn" class="btn-luz">LIGAR</button>
+            <button id="off-btn" class="btn-luz">DESLIGAR</button>
+        </div>
+
+        <p id="status">Toque em Ligar para ativar a lanterna</p>
+    </div>
+
+    <script>
+        const onBtn = document.getElementById('on-btn');
+        const offBtn = document.getElementById('off-btn');
+        const statusText = document.getElementById('status');
+        let track = null;
+
+        // Botão LIGAR
+        onBtn.addEventListener('click', async () => {
+            if (navigator.vibrate) {
+                navigator.vibrate(50); // Feedback tátil
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                track = stream.getVideoTracks()[0];
+
+                const capabilities = track.getCapabilities();
+                if (capabilities.torch) {
+                    await track.applyConstraints({ advanced: [{ torch: true }] });
+                    statusText.innerText = "Lanterna e tela acesas!";
+                } else {
+                    statusText.innerText = "Flash não suportado, usando modo tela branca.";
+                }
+
+                // Muda o visual para tela iluminada
+                document.body.style.backgroundColor = '#fff';
+                document.body.style.color = '#000';
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao acessar o flash da câmera. Verifique as permissões.');
+            }
+        });
+
+        // Botão DESLIGAR
+        offBtn.addEventListener('click', async () => {
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+
+            try {
+                if (track) {
+                    await track.applyConstraints({ advanced: [{ torch: false }] });
+                    track.stop();
+                    track = null;
+                }
+                // Retorna o visual escuro
+                document.body.style.backgroundColor = '#111';
+                document.body.style.color = '#fff';
+                statusText.innerText = "Lanterna desligada.";
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Registro do Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log("Service Worker registrado com sucesso!"))
+                .catch((err) => console.log("Erro ao registrar Service Worker:", err));
+        }
+    </script>
+</body>
+
+</html>
